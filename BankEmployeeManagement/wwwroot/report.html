@@ -1,0 +1,294 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчеты</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 940px;
+            width: 100%;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        h1, h2 {
+            font-size: 1.8rem;
+            color: #0056b3;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        button {
+            display: inline-block;
+            width: auto;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            background-color: #0056b3;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 10px 0;
+        }
+
+            button:hover {
+                background-color: #004094;
+            }
+
+        form {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            background: #f9fafc;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin: 10px 0 5px;
+        }
+
+        select {
+            width: 95%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+            select:focus {
+                border-color: #0056b3;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #0056b3;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafc;
+        }
+
+        .report-section {
+            margin-bottom: 40px;
+        }
+
+        .salary-report {
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9fafc;
+        }
+
+            .salary-report p {
+                margin: 10px 0;
+                font-size: 1.1rem;
+            }
+    </style>
+    <script src="/js/jwt-decode.js"></script>
+    <script src="/js/auth.js"></script>
+
+</head>
+<body>
+    <div class="container">
+        <h1>Отчеты</h1>
+        <button onclick="logout()">Выйти</button>
+        <button onclick="window.location.href='employees.html'">Вернуться к сотрудникам</button>
+
+        <!-- Фильтр по филиалу -->
+        <form id="filter-reports-form" class="report-section">
+            <label>Филиал</label>
+            <select id="filterBranch">
+                <option value="">Все филиалы</option>
+            </select>
+            <button type="submit">Применить фильтр</button>
+            <button type="button" onclick="resetFilters()">Сбросить</button>
+        </form>
+
+        <!-- Отчет по количеству сотрудников в филиалах -->
+        <div class="report-section">
+            <h2>Количество сотрудников по филиалам</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Филиал</th>
+                        <th>Количество сотрудников</th>
+                    </tr>
+                </thead>
+                <tbody id="branch-employee-count-report"></tbody>
+            </table>
+        </div>
+
+        <!-- Отчет по зарплатам -->
+        <div class="report-section">
+            <h2>Статистика по зарплатам</h2>
+            <div class="salary-report" id="salary-report"></div>
+        </div>
+
+        <!-- Отчет по распределению по должностям -->
+        <div class="report-section">
+            <h2>Распределение сотрудников по должностям</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Должность</th>
+                        <th>Количество сотрудников</th>
+                    </tr>
+                </thead>
+                <tbody id="position-distribution-report"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            alert('Пожалуйста, авторизуйтесь.');
+            window.location.href = 'login.html';
+        }
+
+        async function loadBranches() {
+            try {
+                const branches = await fetchWithToken('/Branch/IndexBranch');
+                console.log('Филиалы:', branches); // Отладка ответа
+                const filterBranchSelect = document.getElementById('filterBranch');
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.id;
+                    option.textContent = branch.name;
+                    filterBranchSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Ошибка в loadBranches:', error);
+                alert(`Не удалось загрузить филиалы: ${error.message}`);
+            }
+        }
+
+        async function loadBranchEmployeeCountReport() {
+            try {
+                const report = await fetchWithToken('/Reports/BranchEmployeeCount');
+                console.log('Отчёт по количеству сотрудников:', report); // Отладка ответа
+                const reportBody = document.getElementById('branch-employee-count-report');
+                reportBody.innerHTML = '';
+                report.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.branchName}</td>
+                        <td>${item.employeeCount}</td>
+                    `;
+                    reportBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Ошибка в loadBranchEmployeeCountReport:', error);
+                alert(`Ошибка при загрузке отчёта по количеству сотрудников: ${error.message}`);
+            }
+        }
+
+        async function loadSalaryReport() {
+            try {
+                const branchId = document.getElementById('filterBranch').value;
+                const params = branchId ? `?branchId=${branchId}` : '';
+                const report = await fetchWithToken(`/Reports/SalaryReport${params}`);
+                console.log('Отчёт по зарплатам:', report); // Отладка ответа
+                const reportDiv = document.getElementById('salary-report');
+                reportDiv.innerHTML = `
+                    <p>Общая зарплата: ${report.totalSalary.toFixed(2)}</p>
+                    <p>Средняя зарплата: ${report.averageSalary.toFixed(2)}</p>
+                    <p>Минимальная зарплата: ${report.minSalary.toFixed(2)}</p>
+                    <p>Максимальная зарплата: ${report.maxSalary.toFixed(2)}</p>
+                    <p>Количество сотрудников: ${report.employeeCount}</p>
+                `;
+            } catch (error) {
+                console.error('Ошибка в loadSalaryReport:', error);
+                alert(`Ошибка при загрузке отчёта по зарплатам: ${error.message}`);
+            }
+        }
+
+        async function loadPositionDistributionReport() {
+            try {
+                const branchId = document.getElementById('filterBranch').value;
+                const params = branchId ? `?branchId=${branchId}` : '';
+                const report = await fetchWithToken(`/Reports/PositionDistribution${params}`);
+                console.log('Отчёт по распределению должностей:', report); // Отладка ответа
+                const reportBody = document.getElementById('position-distribution-report');
+                reportBody.innerHTML = '';
+                report.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.position}</td>
+                        <td>${item.employeeCount}</td>
+                    `;
+                    reportBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Ошибка в loadPositionDistributionReport:', error);
+                alert(`Ошибка при загрузке отчёта по распределению должностей: ${error.message}`);
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filterBranch').value = '';
+            loadAllReports();
+        }
+
+        async function loadAllReports() {
+            await loadBranchEmployeeCountReport();
+            await loadSalaryReport();
+            await loadPositionDistributionReport();
+        }
+
+        document.getElementById('filter-reports-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await loadSalaryReport();
+            await loadPositionDistributionReport();
+        });
+
+        loadBranches();
+        loadAllReports();
+
+        function logout() {
+            console.log('Выход пользователя, очистка localStorage');
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

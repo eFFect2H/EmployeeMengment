@@ -1,0 +1,237 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация и Регистрация</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: dodgerblue;
+        }
+
+        .container {
+            width: 400px;
+            padding: 50px;
+            border-radius: 15px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            border-top: 11px solid #0056b3;
+            border-bottom: 11px solid #0056b3;
+            transition: height 0.3s ease-in-out, min-height 0.3s ease-in-out;
+            overflow: hidden;
+        }
+
+            .container.minimized {
+                height: 300px;
+            }
+
+            .container.expanded {
+                height: 400px;
+            }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+            form.active {
+                display: flex;
+            }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+            input:focus, select:focus {
+                border-color: #0056b3;
+            }
+
+            input::placeholder, select {
+                font-size: 0.95rem;
+                color: #888;
+            }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: #0056b3;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+            button:hover {
+                background-color: #004094;
+            }
+
+        .switch-form {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 20px;
+        }
+
+            .switch-form button {
+                background: none;
+                border: none;
+                color: #0056b3;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: color 0.3s ease;
+            }
+
+                .switch-form button:hover {
+                    text-decoration: underline;
+                    color: #003d73;
+                }
+    </style>
+    <script src="/js/jwt-decode.js"></script>
+
+
+</head>
+<body>
+    <div class="container">
+        <h1 id="form-title">Авторизация</h1>
+
+        <!-- Форма авторизации -->
+        <form id="login-form" class="active">
+            <input type="text" id="username" placeholder="Имя пользователя" required>
+            <input type="password" id="password" placeholder="Пароль" required>
+            <button type="submit">Войти</button>
+        </form>
+
+        <!-- Форма регистрации -->
+        <form id="register-form">
+            <input type="text" id="reg-username" placeholder="Имя пользователя" required>
+            <input type="password" id="reg-password" placeholder="Пароль" required>
+            <select id="reg-role" required>
+                <option value="" disabled selected>Выберите роль</option>
+                <option value="1">Administrator</option>
+                <option value="2">HeadBranch</option>
+            </select>
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+
+        <!-- Переключатель между формами -->
+        <div class="switch-form">
+            <span id="switch-to-register">Нет аккаунта? <button onclick="showRegisterForm()">Зарегистрироваться</button></span>
+            <span id="switch-to-login" style="display: none;">Уже есть аккаунт? <button onclick="showLoginForm()">Войти</button></span>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        const container = document.querySelector('.container');
+
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.remove('active');
+            document.getElementById('register-form').classList.add('active');
+            document.getElementById('switch-to-register').style.display = 'none';
+            document.getElementById('switch-to-login').style.display = 'block';
+            document.getElementById('form-title').innerText = 'Регистрация';
+
+            // Увеличиваем высоту контейнера
+            container.classList.remove('minimized');
+            container.classList.add('expanded');
+        }
+
+        function showLoginForm() {
+            document.getElementById('register-form').classList.remove('active');
+            document.getElementById('login-form').classList.add('active');
+            document.getElementById('switch-to-register').style.display = 'block';
+            document.getElementById('switch-to-login').style.display = 'none';
+            document.getElementById('form-title').innerText = 'Авторизация';
+
+            // Уменьшаем высоту контейнера
+            container.classList.remove('expanded');
+            container.classList.add('minimized');
+        }
+
+        // Обработчик формы авторизации
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_URL}/Account/Login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Ошибка авторизации');
+                }
+
+                const data = await response.json();
+                console.log('Ответ от сервера:', data);
+                if (!data.accessToken) { // Используем accessToken с маленькой буквы
+                    throw new Error('Токен не получен от сервера');
+                }
+                localStorage.setItem('token', data.accessToken); // Используем accessToken
+                localStorage.setItem('refreshToken', data.refreshToken); // Используем refreshToken
+                console.log('Сохранённый token:', localStorage.getItem('token'));
+                console.log('Сохранённый refreshToken:', localStorage.getItem('refreshToken'));
+
+                alert('Авторизация успешна!');
+                window.location.href = 'employees.html';
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        // Обработчик формы регистрации
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const roleId = document.getElementById('reg-role').value;
+
+            try {
+                const response = await fetch(`${API_URL}/Account/Register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, roleId: parseInt(roleId) })
+                });
+
+                if (!response.ok) throw new Error('Ошибка регистрации');
+
+                alert('Регистрация успешна! Теперь вы можете войти.');
+                showLoginForm(); // Переключаемся обратно на форму авторизации
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        
+    </script>
+
+</body>
+</html>
