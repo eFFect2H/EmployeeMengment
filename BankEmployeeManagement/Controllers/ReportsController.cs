@@ -19,9 +19,8 @@ namespace BankEmployeeManagement.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Отчет по количеству сотрудников в каждом филиале.
-        /// </summary>
+        
+        // Отчет по количеству сотрудников в каждом филиале.
         [HttpGet("BranchEmployeeCount")]
         public async Task<ActionResult<IEnumerable<BranchEmployeeCountReportDTO>>> GetBranchEmployeeCountReport()
         {
@@ -42,10 +41,8 @@ namespace BankEmployeeManagement.Controllers
             return Ok(report);
         }
 
-        /// <summary>
-        /// Отчет по зарплатам сотрудников.
-        /// </summary>
-        /// <param name="branchId">Фильтр по филиалу (опционально).</param>
+        
+        // Отчет по зарплатам сотрудников.
         [HttpGet("SalaryReport")]
         public async Task<ActionResult<SalaryReportDTO>> GetSalaryReport([FromQuery] int? branchId)
         {
@@ -84,10 +81,8 @@ namespace BankEmployeeManagement.Controllers
             return Ok(salaryStats);
         }
 
-        /// <summary>
-        /// Отчет по распределению сотрудников по должностям.
-        /// </summary>
-        /// <param name="branchId">Фильтр по филиалу (опционально).</param>
+        
+        // Отчет по распределению сотрудников по должностям.
         [HttpGet("PositionDistribution")]
         public async Task<ActionResult<IEnumerable<PositionDistributionReportDTO>>> GetPositionDistributionReport([FromQuery] int? branchId)
         {
