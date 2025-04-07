@@ -198,8 +198,7 @@
                     border-bottom: none;
                 }
     </style>
-    <script src="/js/jwt-decode.js"></script>
-    <script src="/js/auth.js"></script>
+    
 
 </head>
 <body>
@@ -208,6 +207,7 @@
         <button onclick="logout()">Выйти</button>
         <button onclick="redirectToBranches()">Перейти к филиалам</button>
         <button onclick="redirectToReports()">Перейти к отчетам</button>
+        <button onclick="redirectToTasks()">Задачи</button>
 
         <h2>Добавить сотрудника</h2>
         <form id="add-employee-form">
@@ -273,13 +273,154 @@
         </div>
     </div>
 
+    <script src="/js/jwt-decode.js"></script>
+    
+
     <script>
+        const API_URL = '/api'; 
         const token = localStorage.getItem('token');
 
         if (!token) {
             alert('Пожалуйста, авторизуйтесь.');
             window.location.href = 'login.html';
         }
+        // ------------------------------------
+        async function fetchWithToken(url, options = {}) {
+            let currentToken = localStorage.getItem('token');
+            if (!currentToken) {
+                console.error('Токен отсутствует');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+                throw new Error('Нет токена. Пожалуйста, авторизуйтесь.');
+            }
+
+            let decodedToken;
+            try {
+                decodedToken = jwt_decode(currentToken);
+                console.log('Декодированный токен:', decodedToken);
+            } catch (e) {
+                console.error('Ошибка декодирования токена:', e);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+                throw new Error('Некорректный токен.');
+            }
+
+            const currentTime = Date.now() / 1000;
+            console.log('exp:', decodedToken.exp, 'Текущее время + 600:', currentTime + 600);
+            if (decodedToken.exp < currentTime + 600) {
+                console.log('Токен скоро истечет, обновляем...');
+                currentToken = await refreshAccessToken();
+            }
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${currentToken}`
+            };
+
+            const response = await fetch(`${API_URL}${url}`, options);
+            console.log('Статус ответа:', response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('Получен 401, пытаемся обновить токен...');
+                    try {
+                        currentToken = await refreshAccessToken();
+                        options.headers['Authorization'] = `Bearer ${currentToken}`;
+                        const retryResponse = await fetch(`${API_URL}${url}`, options);
+                        console.log('Статус повторного запроса:', retryResponse.status);
+                        if (retryResponse.ok) return retryResponse.json();
+                    } catch (e) {
+                        console.error('Ошибка при обновлении токена после 401:', e);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = 'login.html';
+                        throw new Error('Ошибка авторизации.');
+                    }
+                } else if (response.status === 400) {
+                    const errorText = await response.text();
+                    console.error('Ошибка валидации от сервера:', errorText);
+                    throw new Error(`Ошибка валидации: ${errorText}`);
+                }
+                throw new Error(`Ошибка запроса: ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken || refreshToken.trim() === '') {
+                console.error('Refresh-токен отсутствует или пустой');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                alert('Сессия истекла. Пожалуйста, войдите заново.');
+                window.location.href = 'login.html';
+                throw new Error('Refresh-токен отсутствует.');
+            }
+
+            console.log('Отправляемый RefreshToken:', refreshToken);
+            const response = await fetch(`/api/Account/Refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ RefreshToken: refreshToken })
+            });
+
+            console.log('Статус /Account/Refresh:', response.status);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Ошибка обновления токена:', errorText, 'Статус:', response.status);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                alert('Не удалось обновить токен. Сессия истекла. Пожалуйста, войдите заново.');
+                window.location.href = 'login.html';
+                throw new Error(`Не удалось обновить токен: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('Полный ответ от /Account/Refresh:', data); // Для отладки
+            // Проверяем разные возможные ключи
+            const newAccessToken = data.AccessToken || data.accessToken || data.token;
+            if (!newAccessToken) {
+                console.error('Новый AccessToken не найден в ответе:', data);
+                throw new Error('Новый AccessToken не найден в ответе сервера');
+            }
+            console.log('Новый AccessToken:', newAccessToken);
+            localStorage.setItem('token', newAccessToken);
+            return newAccessToken;
+        }
+
+        async function forceRefreshToken() {
+            try {
+                const newToken = await refreshAccessToken();
+                console.log('Токен успешно обновлен вручную:', newToken);
+                alert('Токен успешно обновлен!');
+            } catch (e) {
+                console.error('Ошибка при принудительном обновлении токена:', e);
+                alert('Не удалось обновить токен. Сессия истекла. Пожалуйста, войдите заново.');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Добавляем обработчики
+        document.addEventListener('DOMContentLoaded', () => {
+            const refreshBtn = document.getElementById('refreshTokenBtn');
+            const requestBtn = document.getElementById('makeRequestBtn');
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', forceRefreshToken);
+            }
+
+            if (requestBtn) {
+                requestBtn.addEventListener('click', () => {
+                    fetchWithToken('/api/Branch/IndexBranch')
+                        .then(data => console.log('Данные:', data))
+                        .catch(err => console.error('Ошибка запроса:', err));
+                });
+            }
+        });
+        // ------------------------------------
 
         let currentPage = 1;
         const pageSize = 10;
@@ -292,6 +433,22 @@
                     return;
                 }
                 window.location.href = 'branches.html';
+            } catch (error) {
+                console.error('Ошибка при разборе токена:', error);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+            }
+        }
+        function redirectToTasks() {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('Роль пользователя:', payload.role);
+                if (!['Administrator', 'HeadBranch'].includes(payload.role)) {
+                    alert('Доступ запрещен.');
+                    return;
+                }
+                window.location.href = 'tasks.html';
             } catch (error) {
                 console.error('Ошибка при разборе токена:', error);
                 localStorage.removeItem('token');
@@ -370,19 +527,19 @@
                 employees.forEach(employee => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${employee.employeeId}</td>
-                        <td contenteditable="true" class="editable">${employee.fullName}</td>
-                        <td contenteditable="true" class="editable">${employee.email || 'Нет данных'}</td>
-                        <td contenteditable="true" class="editable">${employee.phone || 'Нет данных'}</td>
-                        <td contenteditable="true" class="editable">${employee.position}</td>
-                        <td contenteditable="true" class="editable">${employee.salary}</td>
-                        <td contenteditable="true" class="editable">${employee.branchId || 'Не назначен'}</td>
-                        <td class="actions">
-                            <button class="edit" onclick="saveEmployee(${employee.employeeId}, this)">Сохранить</button>
-                            <button onclick="deleteEmployee(${employee.employeeId})">Удалить</button>
-                            <button onclick="showHistory(${employee.employeeId})">История</button>
-                        </td>
-                    `;
+                                <td>${employee.employeeId}</td>
+                                <td contenteditable="true" class="editable">${employee.fullName}</td>
+                                <td contenteditable="true" class="editable">${employee.email || 'Нет данных'}</td>
+                                <td contenteditable="true" class="editable">${employee.phone || 'Нет данных'}</td>
+                                <td contenteditable="true" class="editable">${employee.position}</td>
+                                <td contenteditable="true" class="editable">${employee.salary}</td>
+                                <td contenteditable="true" class="editable">${employee.branchId || 'Не назначен'}</td>
+                                <td class="actions">
+                                    <button class="edit" onclick="saveEmployee(${employee.employeeId}, this)">Сохранить</button>
+                                    <button onclick="deleteEmployee(${employee.employeeId})">Удалить</button>
+                                    <button onclick="showHistory(${employee.employeeId})">История</button>
+                                </td>
+                            `;
                     employeeList.appendChild(row);
                 });
 
@@ -407,43 +564,43 @@
                         const details = JSON.parse(h.details);
                         if (h.action === 'Updated') {
                             detailsHtml = `
-                                <table class="history-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Поле</th>
-                                            <th>Старое значение</th>
-                                            <th>Новое значение</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td>Имя</td><td>${details.Old.FullName}</td><td>${details.New.FullName}</td></tr>
-                                        <tr><td>Телефон</td><td>${details.Old.Phone}</td><td>${details.New.Phone}</td></tr>
-                                        <tr><td>Email</td><td>${details.Old.Email}</td><td>${details.New.Email}</td></tr>
-                                        <tr><td>Должность</td><td>${details.Old.Position}</td><td>${details.New.Position}</td></tr>
-                                        <tr><td>Филиал</td><td>${details.Old.BranchId}</td><td>${details.New.BranchId}</td></tr>
-                                        <tr><td>Зарплата</td><td>${details.Old.Salary}</td><td>${details.New.Salary}</td></tr>
-                                    </tbody>
-                                </table>
-                            `;
+                                        <table class="history-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Поле</th>
+                                                    <th>Старое значение</th>
+                                                    <th>Новое значение</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr><td>Имя</td><td>${details.Old.FullName}</td><td>${details.New.FullName}</td></tr>
+                                                <tr><td>Телефон</td><td>${details.Old.Phone}</td><td>${details.New.Phone}</td></tr>
+                                                <tr><td>Email</td><td>${details.Old.Email}</td><td>${details.New.Email}</td></tr>
+                                                <tr><td>Должность</td><td>${details.Old.Position}</td><td>${details.New.Position}</td></tr>
+                                                <tr><td>Филиал</td><td>${details.Old.BranchId}</td><td>${details.New.BranchId}</td></tr>
+                                                <tr><td>Зарплата</td><td>${details.Old.Salary}</td><td>${details.New.Salary}</td></tr>
+                                            </tbody>
+                                        </table>
+                                    `;
                         } else {
                             detailsHtml = `
-                                <ul class="history-list">
-                                    <li><strong>Имя:</strong> ${details.FullName}</li>
-                                    <li><strong>Телефон:</strong> ${details.Phone}</li>
-                                    <li><strong>Email:</strong> ${details.Email}</li>
-                                    <li><strong>Должность:</strong> ${details.Position}</li>
-                                    <li><strong>Филиал:</strong> ${details.BranchId}</li>
-                                    <li><strong>Зарплата:</strong> ${details.Salary}</li>
-                                </ul>
-                            `;
+                                        <ul class="history-list">
+                                            <li><strong>Имя:</strong> ${details.FullName}</li>
+                                            <li><strong>Телефон:</strong> ${details.Phone}</li>
+                                            <li><strong>Email:</strong> ${details.Email}</li>
+                                            <li><strong>Должность:</strong> ${details.Position}</li>
+                                            <li><strong>Филиал:</strong> ${details.BranchId}</li>
+                                            <li><strong>Зарплата:</strong> ${details.Salary}</li>
+                                        </ul>
+                                    `;
                         }
                     }
                     return `
-                        <div class="history-entry">
-                            <h3>${h.action} by ${h.changedBy} at ${new Date(h.changedAt).toLocaleString()}</h3>
-                            ${detailsHtml}
-                        </div>
-                    `;
+                                <div class="history-entry">
+                                    <h3>${h.action} by ${h.changedBy} at ${new Date(h.changedAt).toLocaleString()}</h3>
+                                    ${detailsHtml}
+                                </div>
+                            `;
                 }).join('') || '<p>История изменений отсутствует.</p>';
 
                 const modal = document.getElementById('historyModal');
@@ -572,6 +729,13 @@
             localStorage.removeItem('refreshToken');
             window.location.href = 'login.html';
         }
+
+        
+        
+
     </script>
+
+
+
 </body>
 </html>

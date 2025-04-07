@@ -15,11 +15,11 @@ namespace BankEmployeeManagement.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private readonly AuthService _authService;
+        private readonly IAuthService _authService;
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AccountController(AuthService authService, AppDbContext context, IConfiguration configuration)
+        public AccountController(IAuthService authService, AppDbContext context, IConfiguration configuration)
         {
             _authService = authService;
             _context = context;

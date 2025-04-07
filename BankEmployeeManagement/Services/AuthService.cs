@@ -10,7 +10,12 @@ using System.Text;
 
 namespace BankEmployeeManagement.Services
 {
-    public class AuthService
+    public interface IAuthService
+    {
+        Task<(string? AccessToken, string? RefreshToken)> Authenticate(UserLoginDTO loginDto);
+        Task<(bool Success, string? ErrorMessage)> RegisterUser(UserRegisterDTO registerDto);
+    }
+    public class AuthService : IAuthService
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;

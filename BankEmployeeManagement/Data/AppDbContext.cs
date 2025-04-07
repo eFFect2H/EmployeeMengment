@@ -14,6 +14,7 @@ namespace BankEmployeeManagement.Data
         public DbSet<EmployeeHistory> EmployeeHistory { get; set; }
         public DbSet<BranchHistory> BranchHistory { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Taske> Tasks { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -71,6 +72,24 @@ namespace BankEmployeeManagement.Data
                 .WithOne(e => e.Branch)
                 .HasForeignKey(e => e.BranchId)
                 .OnDelete(DeleteBehavior.Cascade); // Каскадное удаление сотрудников при удалении филиала
+
+            modelBuilder.Entity<Taske>(entity =>
+            {
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Title).IsRequired().HasMaxLength(100);
+                entity.Property(t => t.Description).HasMaxLength(500);
+                entity.Property(t => t.Status).IsRequired().HasMaxLength(20);
+                entity.Property(t => t.Priority).IsRequired();
+                entity.Property(t => t.CreatedBy).IsRequired().HasMaxLength(50);
+                entity.HasOne(t => t.AssignedEmployee)
+                      .WithMany()
+                      .HasForeignKey(t => t.AssignedEmployeeId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.Branch)
+                      .WithMany()
+                      .HasForeignKey(t => t.BranchId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
         }
 
     }

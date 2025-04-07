@@ -121,8 +121,7 @@
                 font-size: 1.1rem;
             }
     </style>
-    <script src="/js/jwt-decode.js"></script>
-    <script src="/js/auth.js"></script>
+    
 
 </head>
 <body>
@@ -176,18 +175,159 @@
         </div>
     </div>
 
+    <script src="/js/jwt-decode.js"></script>
+    
+
     <script>
+        const API_URL = '/api';
         const token = localStorage.getItem('token');
 
         if (!token) {
             alert('Пожалуйста, авторизуйтесь.');
             window.location.href = 'login.html';
         }
+        // ------------------------------------
+        async function fetchWithToken(url, options = {}) {
+            let currentToken = localStorage.getItem('token');
+            if (!currentToken) {
+                console.error('Токен отсутствует');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+                throw new Error('Нет токена. Пожалуйста, авторизуйтесь.');
+            }
+
+            let decodedToken;
+            try {
+                decodedToken = jwt_decode(currentToken);
+                console.log('Декодированный токен:', decodedToken);
+            } catch (e) {
+                console.error('Ошибка декодирования токена:', e);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+                throw new Error('Некорректный токен.');
+            }
+
+            const currentTime = Date.now() / 1000;
+            console.log('exp:', decodedToken.exp, 'Текущее время + 600:', currentTime + 600);
+            if (decodedToken.exp < currentTime + 600) {
+                console.log('Токен скоро истечет, обновляем...');
+                currentToken = await refreshAccessToken();
+            }
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${currentToken}`
+            };
+
+            const response = await fetch(`${API_URL}${url}`, options);
+            console.log('Статус ответа:', response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.log('Получен 401, пытаемся обновить токен...');
+                    try {
+                        currentToken = await refreshAccessToken();
+                        options.headers['Authorization'] = `Bearer ${currentToken}`;
+                        const retryResponse = await fetch(`${API_URL}${url}`, options);
+                        console.log('Статус повторного запроса:', retryResponse.status);
+                        if (retryResponse.ok) return retryResponse.json();
+                    } catch (e) {
+                        console.error('Ошибка при обновлении токена после 401:', e);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('refreshToken');
+                        window.location.href = 'login.html';
+                        throw new Error('Ошибка авторизации.');
+                    }
+                } else if (response.status === 400) {
+                    const errorText = await response.text();
+                    console.error('Ошибка валидации от сервера:', errorText);
+                    throw new Error(`Ошибка валидации: ${errorText}`);
+                }
+                throw new Error(`Ошибка запроса: ${response.status}`);
+            }
+            return response.json();
+        }
+
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (!refreshToken || refreshToken.trim() === '') {
+                console.error('Refresh-токен отсутствует или пустой');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                alert('Сессия истекла. Пожалуйста, войдите заново.');
+                window.location.href = 'login.html';
+                throw new Error('Refresh-токен отсутствует.');
+            }
+
+            console.log('Отправляемый RefreshToken:', refreshToken);
+            const response = await fetch(`/api/Account/Refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ RefreshToken: refreshToken })
+            });
+
+            console.log('Статус /Account/Refresh:', response.status);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Ошибка обновления токена:', errorText, 'Статус:', response.status);
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                alert('Не удалось обновить токен. Сессия истекла. Пожалуйста, войдите заново.');
+                window.location.href = 'login.html';
+                throw new Error(`Не удалось обновить токен: ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('Полный ответ от /Account/Refresh:', data); // Для отладки
+            // Проверяем разные возможные ключи
+            const newAccessToken = data.AccessToken || data.accessToken || data.token;
+            if (!newAccessToken) {
+                console.error('Новый AccessToken не найден в ответе:', data);
+                throw new Error('Новый AccessToken не найден в ответе сервера');
+            }
+            console.log('Новый AccessToken:', newAccessToken);
+            localStorage.setItem('token', newAccessToken);
+            return newAccessToken;
+        }
+
+        async function forceRefreshToken() {
+            try {
+                const newToken = await refreshAccessToken();
+                console.log('Токен успешно обновлен вручную:', newToken);
+                alert('Токен успешно обновлен!');
+            } catch (e) {
+                console.error('Ошибка при принудительном обновлении токена:', e);
+                alert('Не удалось обновить токен. Сессия истекла. Пожалуйста, войдите заново.');
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Добавляем обработчики
+        document.addEventListener('DOMContentLoaded', () => {
+            const refreshBtn = document.getElementById('refreshTokenBtn');
+            const requestBtn = document.getElementById('makeRequestBtn');
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', forceRefreshToken);
+            }
+
+            if (requestBtn) {
+                requestBtn.addEventListener('click', () => {
+                    fetchWithToken('/api/Branch/IndexBranch')
+                        .then(data => console.log('Данные:', data))
+                        .catch(err => console.error('Ошибка запроса:', err));
+                });
+            }
+        });
+        // ------------------------------------
 
         async function loadBranches() {
             try {
                 const branches = await fetchWithToken('/Branch/IndexBranch');
-                console.log('Филиалы:', branches); // Отладка ответа
+                console.log('Филиалы:', branches); 
                 const filterBranchSelect = document.getElementById('filterBranch');
                 branches.forEach(branch => {
                     const option = document.createElement('option');
@@ -204,15 +344,15 @@
         async function loadBranchEmployeeCountReport() {
             try {
                 const report = await fetchWithToken('/Reports/BranchEmployeeCount');
-                console.log('Отчёт по количеству сотрудников:', report); // Отладка ответа
+                console.log('Отчёт по количеству сотрудников:', report); 
                 const reportBody = document.getElementById('branch-employee-count-report');
                 reportBody.innerHTML = '';
                 report.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${item.branchName}</td>
-                        <td>${item.employeeCount}</td>
-                    `;
+                                <td>${item.branchName}</td>
+                                <td>${item.employeeCount}</td>
+                            `;
                     reportBody.appendChild(row);
                 });
             } catch (error) {
@@ -229,12 +369,12 @@
                 console.log('Отчёт по зарплатам:', report); // Отладка ответа
                 const reportDiv = document.getElementById('salary-report');
                 reportDiv.innerHTML = `
-                    <p>Общая зарплата: ${report.totalSalary.toFixed(2)}</p>
-                    <p>Средняя зарплата: ${report.averageSalary.toFixed(2)}</p>
-                    <p>Минимальная зарплата: ${report.minSalary.toFixed(2)}</p>
-                    <p>Максимальная зарплата: ${report.maxSalary.toFixed(2)}</p>
-                    <p>Количество сотрудников: ${report.employeeCount}</p>
-                `;
+                            <p>Общая зарплата: ${report.totalSalary.toFixed(2)}</p>
+                            <p>Средняя зарплата: ${report.averageSalary.toFixed(2)}</p>
+                            <p>Минимальная зарплата: ${report.minSalary.toFixed(2)}</p>
+                            <p>Максимальная зарплата: ${report.maxSalary.toFixed(2)}</p>
+                            <p>Количество сотрудников: ${report.employeeCount}</p>
+                        `;
             } catch (error) {
                 console.error('Ошибка в loadSalaryReport:', error);
                 alert(`Ошибка при загрузке отчёта по зарплатам: ${error.message}`);
@@ -252,9 +392,9 @@
                 report.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${item.position}</td>
-                        <td>${item.employeeCount}</td>
-                    `;
+                                <td>${item.position}</td>
+                                <td>${item.employeeCount}</td>
+                            `;
                     reportBody.appendChild(row);
                 });
             } catch (error) {
@@ -290,5 +430,8 @@
             window.location.href = 'login.html';
         }
     </script>
+
+
+
 </body>
 </html>

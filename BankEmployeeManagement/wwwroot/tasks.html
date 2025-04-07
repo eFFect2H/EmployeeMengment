@@ -1,9 +1,8 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Управление филиалами</title>
+    <title>Управление задачами</title>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -16,12 +15,12 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1180px;
             width: 100%;
             margin: 0 auto;
             background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(1.1, 1.1, 1.1, 1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 30px;
         }
 
@@ -30,6 +29,12 @@
             color: #0056b3;
             margin-bottom: 20px;
             text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #333;
+            margin: 20px 0;
         }
 
         button {
@@ -44,7 +49,7 @@
             border-radius: 6px;
             cursor: pointer;
             transition: background-color 0.3s ease;
-            margin-bottom: 20px;
+            margin: 10px 0;
         }
 
             button:hover {
@@ -59,13 +64,7 @@
             background: #f9fafc;
         }
 
-        label {
-            display: block;
-            font-weight: 500;
-            margin: 10px 0 5px;
-        }
-
-        input {
+        input, textarea, select {
             width: 95%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -74,9 +73,16 @@
             font-size: 1rem;
             margin-bottom: 10px;
             transition: border-color 0.3s ease;
+            box-sizing: border-box;
         }
 
-            input:focus {
+        textarea {
+            width: 95%;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+            input:focus, textarea:focus, select:focus {
                 border-color: #0056b3;
             }
 
@@ -105,6 +111,7 @@
             background-color: #f9fafc;
         }
 
+        /* Стили для кнопок действий в таблице */
         .actions {
             display: flex;
             flex-direction: column;
@@ -113,6 +120,7 @@
 
             .actions button {
                 background-color: #ff4d4d;
+                margin: 0;
             }
 
                 .actions button.edit {
@@ -127,141 +135,121 @@
                     background-color: #004094;
                 }
 
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 700px;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-            .close:hover,
-            .close:focus {
-                color: black;
-                text-decoration: none;
+        /* Адаптивный дизайн */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
             }
 
-        .history-entry {
-            margin-bottom: 20px;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
-            .history-entry h3 {
-                margin: 0 0 10px;
-                font-size: 18px;
-                color: #333;
+            h1 {
+                font-size: 1.5rem;
             }
 
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+            h2 {
+                font-size: 1.2rem;
+            }
+
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            input, textarea, select {
+                width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            th, td {
+                min-width: 100px;
+            }
         }
 
-            .history-table th, .history-table td {
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3rem;
+            }
+
+            h2 {
+                font-size: 1.1rem;
+            }
+
+            input, textarea, select {
+                font-size: 0.9rem;
                 padding: 8px;
-                border: 1px solid #ddd;
-                text-align: left;
             }
 
-            .history-table th {
-                background-color: #f5f5f5;
-                font-weight: bold;
+            button {
+                font-size: 0.9rem;
+                padding: 8px 15px;
             }
 
-            .history-table tr:nth-child(even) {
-                background-color: #fafafa;
+            th, td {
+                font-size: 0.85rem;
+                padding: 8px;
             }
-
-        .history-list {
-            list-style: none;
-            padding: 0;
         }
 
-            .history-list li {
-                padding: 5px 0;
-                border-bottom: 1px solid #eee;
+        /* Дополнительные улучшения для формы */
+        #add-task-form button[type="submit"] {
+            background-color: #0056b3;
+        }
+
+            #add-task-form button[type="submit"]:hover {
+                background-color: #004094;
             }
-
-                .history-list li:last-child {
-                    border-bottom: none;
-                }
     </style>
-    
 
+    
 </head>
 <body>
     <div class="container">
-        <h1>Управление филиалами</h1>
+        <h1>Управление задачами</h1>
         <button onclick="logout()">Выйти</button>
         <button onclick="redirectToEmployees()">Перейти к сотрудникам</button>
-        <h2>Добавить филиал</h2>
-        <form id="add-branch-form">
-            <label>Название филиала</label>
-            <input type="text" id="branchName" required>
-            <label>Адрес филиала</label>
-            <input type="text" id="branchAddress" required>
-            <button type="submit">Добавить филиал</button>
+        <h2>Создать задачу</h2>
+        <form id="add-task-form">
+            <input type="text" id="taskTitle" placeholder="Название задачи" required>
+            <textarea id="taskDescription" placeholder="Описание задачи"></textarea>
+            <input type="datetime-local" id="taskDeadline" required>
+            <select id="taskPriority">
+                <option value="1">Низкий</option>
+                <option value="2">Средний</option>
+                <option value="3">Высокий</option>
+            </select>
+            <select id="taskEmployee" required></select>
+            <select id="taskBranch" required></select>
+            <button type="submit">Добавить задачу</button>
         </form>
 
-        <h2>Импорт филиалов из CSV</h2>
-        <form id="import-branch-form">
-            <label>Выберите CSV-файл</label>
-            <input type="file" id="branchFile" accept=".csv" required>
-            <button type="submit">Импортировать</button>
-        </form>
-
-        <h2>Список филиалов</h2>
+        <h2>Список задач</h2>
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Название</th>
-                    <th>Адрес</th>
+                    <th>Описание</th>
+                    <th>Дедлайн</th>
+                    <th>Приоритет</th>
+                    <th>Статус</th>
+                    <th>Сотрудник</th>
+                    <th>Филиал</th>
                     <th>Действия</th>
                 </tr>
             </thead>
-            <tbody id="branch-list"></tbody>
+            <tbody id="task-list"></tbody>
         </table>
-    </div>
-
-    <div id="historyModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h2>История изменений</h2>
-            <div id="historyContent"></div>
-        </div>
     </div>
 
     <script src="/js/jwt-decode.js"></script>
     
 
     <script>
-        const API_URL = '/api'; 
+        const API_URL = '/api';
         const token = localStorage.getItem('token');
 
         if (!token) {
@@ -406,188 +394,129 @@
         });
         // ------------------------------------
 
-        async function loadBranches() {
-            try {
-                const branches = await fetchWithToken('/Branch/IndexBranch');
-                console.log('Филиалы:', branches); // Отладка ответа
-                const branchList = document.getElementById('branch-list');
-                branchList.innerHTML = '';
-                branches.forEach(branch => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                                <td>${branch.id}</td>
-                                <td contenteditable="true" class="editable">${branch.name}</td>
-                                <td contenteditable="true" class="editable">${branch.address}</td>
-                                <td class="actions">
-                                <button class="edit" onclick="saveBranch(${branch.id}, this)">Сохранить</button>
-                                <button onclick="deleteBranch(${branch.id})">Удалить</button>
-                                <button onclick="showHistory(${branch.id})">История</button>
-                                </td>
-                                    `;
-                    branchList.appendChild(row);
-                });
-            } catch (error) {
-                console.error('Ошибка в loadBranches:', error);
-                alert(`Не удалось загрузить филиалы: ${error.message}`);
-            }
-        }
-
-        async function addBranch(event) {
-            event.preventDefault();
-            const branch = {
-                name: document.getElementById('branchName').value,
-                address: document.getElementById('branchAddress').value
-            };
-
-            try {
-                await fetchWithToken('/Branch/CreateBranch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(branch)
-                });
-                alert('Филиал добавлен!');
-                document.getElementById('add-branch-form').reset();
-                loadBranches();
-            } catch (error) {
-                console.error('Ошибка в addBranch:', error);
-                alert(`Ошибка при добавлении филиала: ${error.message}`);
-            }
-        }
-
-        async function importBranches(event) {
-            event.preventDefault();
-            const fileInput = document.getElementById('branchFile');
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('Выберите файл для импорта.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            try {
-                const result = await fetchWithToken('/Branch/Import', {
-                    method: 'POST',
-                    body: formData
-                });
-                alert(result.message);
-                document.getElementById('import-branch-form').reset();
-                loadBranches();
-            } catch (error) {
-                console.error('Ошибка в importBranches:', error);
-                alert(`Не удалось импортировать филиалы: ${error.message}`);
-            }
-        }
-
-        async function deleteBranch(branchId) {
-            if (!confirm('Вы уверены, что хотите удалить филиал?')) return;
-
-            try {
-                await fetchWithToken(`/Branch/DeleteBranch/${branchId}`, {
-                    method: 'DELETE'
-                });
-                alert('Филиал удален!');
-                loadBranches();
-            } catch (error) {
-                console.error('Ошибка в deleteBranch:', error);
-                alert(`Ошибка при удалении филиала: ${error.message}`);
-            }
-        }
-
-        async function saveBranch(branchId, button) {
-            const row = button.closest('tr');
-            const updatedBranch = {
-                name: row.cells[1].innerText,
-                address: row.cells[2].innerText
-            };
-
-            try {
-                await fetchWithToken(`/Branch/EditBranch/${branchId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedBranch)
-                });
-                alert('Филиал обновлен!');
-                loadBranches();
-            } catch (error) {
-                console.error('Ошибка в saveBranch:', error);
-                alert(`Ошибка при обновлении филиала: ${error.message}`);
-            }
-        }
-
-        async function showHistory(branchId) {
-            try {
-                const history = await fetchWithToken(`/Branch/History/${branchId}`);
-                console.log('История:', history);
-                const historyContent = document.getElementById('historyContent');
-                historyContent.innerHTML = history.map(h => {
-                    let detailsHtml = '';
-                    if (h.details) {
-                        const details = JSON.parse(h.details);
-                        if (h.action === 'Updated') {
-                            detailsHtml = `
-                                        <table class="history-table">
-                                        <thead>
-                                        <tr>
-                                        <th>Поле</th>
-                                        <th>Старое значение</th>
-                                        <th>Новое значение</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr><td>Название</td><td>${details.Old.Name}</td><td>${details.New.Name}</td></tr>
-                                        <tr><td>Адрес</td><td>${details.Old.Address}</td><td>${details.New.Address}</td></tr>
-                                        </tbody>
-                                        </table>
-                                    `;
-                        } else {
-                            detailsHtml = `
-             <ul class="history-list">
-             <li><strong>Название:</strong> ${details.Name}</li>
-             <li><strong>Адрес:</strong> ${details.Address}</li>
-             </ul>
-             `;
-                        }
-                    }
-                    return `
-             <div class="history-entry">
-             <h3>${h.action} by ${h.changedBy} at ${new Date(h.changedAt).toLocaleString()}</h3>
-             ${detailsHtml}
-             </div>
-             `;
-                }).join('') || '<p>История изменений отсутствует.</p>';
-
-                const modal = document.getElementById('historyModal');
-                modal.style.display = 'block';
-            } catch (error) {
-                console.error('Ошибка в showHistory:', error);
-                alert(`Не удалось загрузить историю: ${error.message}`);
-            }
-        }
-
         function redirectToEmployees() {
             window.location.href = 'employees.html';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const modal = document.getElementById('historyModal');
-            const closeBtn = document.getElementsByClassName('close')[0];
+        async function loadEmployeesAndBranches() {
+            try {
+                const employees = await fetchWithToken('/Employee/SearchEmployees?page=1&pageSize=1000');
+                const branches = await fetchWithToken('/Branch/IndexBranch');
 
-            closeBtn.onclick = function () {
-                modal.style.display = 'none';
+                const employeeSelect = document.getElementById('taskEmployee');
+                employeeSelect.innerHTML = '';
+                employees.employees.forEach(emp => {
+                    const option = document.createElement('option');
+                    option.value = emp.employeeId;
+                    option.textContent = emp.fullName;
+                    employeeSelect.appendChild(option);
+                });
+
+                const branchSelect = document.getElementById('taskBranch');
+                branchSelect.innerHTML = '';
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.id;
+                    option.textContent = branch.name;
+                    branchSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки сотрудников или филиалов:', error);
+                alert('Не удалось загрузить данные.');
+            }
+        }
+
+        async function loadTasks() {
+            try {
+                const tasks = await fetchWithToken('/Tasks/GetAllTasks');
+                const taskList = document.getElementById('task-list');
+                taskList.innerHTML = '';
+                tasks.forEach(task => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${task.id}</td>
+                        <td contenteditable="true">${task.title}</td>
+                        <td contenteditable="true">${task.description || ''}</td>
+                        <td contenteditable="true">${new Date(task.deadline).toISOString().slice(0, 16)}</td>
+                        <td contenteditable="true">${task.priority}</td>
+                        <td contenteditable="true" class="${task.status === 'Overdue' ? 'overdue' : ''}">${task.status}</td>
+                        <td>${task.assignedEmployeeName}</td>
+                        <td>${task.branchName}</td>
+                        <td>
+                            <button onclick="saveTask(${task.id}, this)">Сохранить</button>
+                            <button onclick="deleteTask(${task.id})">Удалить</button>
+                        </td>
+                    `;
+                    taskList.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки задач:', error);
+                alert('Не удалось загрузить задачи.');
+            }
+        }
+
+        document.getElementById('add-task-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const task = {
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDescription').value,
+                deadline: new Date(document.getElementById('taskDeadline').value).toISOString(),
+                priority: parseInt(document.getElementById('taskPriority').value),
+                assignedEmployeeId: parseInt(document.getElementById('taskEmployee').value),
+                branchId: parseInt(document.getElementById('taskBranch').value)
             };
 
-            window.onclick = function (event) {
-                if (event.target == modal) {
-                    modal.style.display = 'none';
-                }
-            };
-
-            document.getElementById('add-branch-form').addEventListener('submit', addBranch);
-            document.getElementById('import-branch-form').addEventListener('submit', importBranches);
-            loadBranches();
+            try {
+                await fetchWithToken('/Tasks/CreateTask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task)
+                });
+                alert('Задача добавлена!');
+                document.getElementById('add-task-form').reset();
+                loadTasks();
+            } catch (error) {
+                console.error('Ошибка создания задачи:', error);
+                alert('Не удалось создать задачу.');
+            }
         });
+
+        async function saveTask(taskId, button) {
+            const row = button.closest('tr');
+            const task = {
+                title: row.cells[1].innerText,
+                description: row.cells[2].innerText,
+                deadline: new Date(row.cells[3].innerText).toISOString(),
+                priority: parseInt(row.cells[4].innerText),
+                status: row.cells[5].innerText
+            };
+
+            try {
+                await fetchWithToken(`/Tasks/UpdateTask/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(task)
+                });
+                alert('Задача обновлена!');
+                loadTasks();
+            } catch (error) {
+                console.error('Ошибка обновления задачи:', error);
+                alert('Не удалось обновить задачу.');
+            }
+        }
+
+        async function deleteTask(taskId) {
+            if (!confirm('Вы уверены, что хотите удалить задачу?')) return;
+
+            try {
+                await fetchWithToken(`/Tasks/DeleteTask/${taskId}`, { method: 'DELETE' });
+                alert('Задача удалена!');
+                loadTasks();
+            } catch (error) {
+                console.error('Ошибка удаления задачи:', error);
+                alert('Не удалось удалить задачу.');
+            }
+        }
 
         function logout() {
             console.log('Выход пользователя, очистка localStorage');
@@ -595,9 +524,12 @@
             localStorage.removeItem('refreshToken');
             window.location.href = 'login.html';
         }
+
+        loadEmployeesAndBranches();
+        loadTasks();
     </script>
 
-
+    
 
 </body>
 </html>
