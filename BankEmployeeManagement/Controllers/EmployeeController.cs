@@ -5,6 +5,9 @@ using BankEmployeeManagement.DTOs;
 using BankEmployeeManagement.Models;
 using BankEmployeeManagement.Data;
 using System.Text.Json;
+using CsvHelper.Configuration;
+using CsvHelper;
+using System.Globalization;
 
 namespace BankEmployeeManagement.Controllers
 {
@@ -236,6 +239,133 @@ namespace BankEmployeeManagement.Controllers
                 PageSize = pageSize,
                 Employees = employees
             });
+        }
+
+        [HttpPost("Import")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ImportEmployees(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("Please upload a valid CSV file.");
+            }
+
+            if (!file.FileName.EndsWith(".csv"))
+            {
+                return BadRequest("File must be in CSV format.");
+            }
+
+            try
+            {
+                // Настройка конфигурации CSV
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = ",",
+                    HasHeaderRecord = true,
+                    TrimOptions = TrimOptions.Trim,
+                    MissingFieldFound = null
+                };
+
+                // Загрузка существующих Id филиалов 
+                var branchIdsList = await _context.Branches.Select(b => b.Id).ToListAsync();
+                var validBranchIds = new HashSet<int>(branchIdsList);
+
+                using (var streamReader = new StreamReader(file.OpenReadStream()))
+                using (var csvReader = new CsvReader(streamReader, config))
+                {
+                    // Чтение CSV в список EmployeeDTO
+                    var employeeDtos = csvReader.GetRecords<EmployeeDTO>().ToList();
+
+                    if (!employeeDtos.Any())
+                    {
+                        return BadRequest("CSV file is empty.");
+                    }
+
+                    // Подготовка списков для сотрудников и истории
+                    var employees = new List<Employee>();
+                    var histories = new List<EmployeeHistory>();
+                    var tempEmployeeMap = new List<(Employee Employee, EmployeeDTO Dto)>(); // Для связи EmployeeId
+
+                    // Валидация и преобразование в Employee
+                    foreach (var dto in employeeDtos)
+                    {
+
+                        // Базовая валидация
+                        if (string.IsNullOrWhiteSpace(dto.FullName))
+                        {
+                            return BadRequest($"Invalid FullName for employee ID {dto.EmployeeId}");
+                        }
+
+                        // Проверка существования филиала
+                        if (dto.BranchId.HasValue && !validBranchIds.Contains(dto.BranchId.Value))
+                        {
+                            return BadRequest($"Invalid BranchId {dto.BranchId} for employee {dto.FullName}");
+                        }
+
+                        var employee = new Employee
+                        {
+                            EmployeeId = dto.EmployeeId,
+                            FullName = dto.FullName,
+                            Phone = dto.Phone,
+                            Email = dto.Email,
+                            
+                            Position = dto.Position,
+                            BranchId = dto.BranchId,
+                            Salary = dto.Salary
+                        };
+
+                        employees.Add(employee);
+                        tempEmployeeMap.Add((employee, dto));
+                    }
+
+                    // Проверка на уникальность EmployeeId
+                    var existingEmployeeIds = await _context.Employees
+                        .Where(e => employees.Select(x => x.EmployeeId).Contains(e.EmployeeId))
+                        .Select(e => e.EmployeeId)
+                        .ToListAsync();
+
+                    if (existingEmployeeIds.Any())
+                    {
+                        return BadRequest($"Employees with IDs {string.Join(", ", existingEmployeeIds)} already exist.");
+                    }
+
+                    // Добавление сотрудников в контекст
+                    _context.Employees.AddRange(employees);
+                    await _context.SaveChangesAsync(); // Сохраняем сотрудников, чтобы получить EmployeeId
+
+                    // Создание записей истории
+                    foreach (var (employee, dto) in tempEmployeeMap)
+                    {
+                        var history = new EmployeeHistory
+                        {
+                            EmployeeId = employee.EmployeeId, 
+                            Action = "Created",
+                            ChangedBy = User.Identity?.Name ?? "Unknown",
+                            ChangedAt = DateTime.UtcNow,
+                            Details = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = false })
+                        };
+                        histories.Add(history);
+                    }
+
+                    // Добавление истории
+                    _context.EmployeeHistory.AddRange(histories);
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new
+                    {
+                        Message = $"Successfully imported {employees.Count} employees",
+                        ImportedCount = employees.Count
+                    });
+                }
+            }
+            catch (CsvHelperException ex)
+            {
+                return BadRequest($"Error parsing CSV file: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

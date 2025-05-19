@@ -209,6 +209,8 @@
         <button onclick="redirectToReports()">Перейти к отчетам</button>
         <button onclick="redirectToTasks()">Задачи</button>
 
+
+
         <h2>Добавить сотрудника</h2>
         <form id="add-employee-form">
             <label>Имя сотрудника</label>
@@ -224,6 +226,13 @@
             <label>Филиал</label>
             <select id="employeeBranch"></select>
             <button type="submit">Добавить сотрудника</button>
+        </form>
+
+        <h2>Импорт сотрудников из CSV</h2>
+        <form id="import-employee-form">
+            <label>Выберите CSV-файл</label>
+            <input type="file" id="employeeFile" accept=".csv" required>
+            <button type="submit">Импортировать</button>
         </form>
 
         <h2>Список сотрудников</h2>
@@ -715,6 +724,35 @@
                 alert(`Ошибка при удалении сотрудника: ${error.message}`);
             }
         }
+        // ---------------------
+        document.getElementById('import-employee-form').addEventListener('submit', importEmployees);
+        async function importEmployees(event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('employeeFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Выберите файл для импорта.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const result = await fetchWithToken('/Employee/Import', {
+                    method: 'POST',
+                    body: formData
+                });
+                alert(result.message || 'Сотрудники успешно импортированы!');
+                document.getElementById('import-employee-form').reset();
+                loadEmployees(); // Предполагается, что есть функция loadEmployees
+            } catch (error) {
+                console.error('Ошибка в importEmployees:', error);
+                alert(`Не удалось импортировать сотрудников: ${error.message}`);
+            }
+        }
+        
+        // ----------------------
 
         function resetFilters() {
             document.getElementById('filterFullName').value = '';
