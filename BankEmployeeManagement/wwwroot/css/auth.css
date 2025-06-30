@@ -1,0 +1,172 @@
+﻿
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%); /* Градиентный фон */
+    color: #1f2a44;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px;
+    padding: 32px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+    .container:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .container.minimized {
+        min-height: 300px;
+    }
+
+    .container.expanded {
+        min-height: 400px;
+    }
+
+h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2a44;
+    margin-bottom: 24px;
+    transition: color 0.3s ease;
+}
+
+form {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+    form.active {
+        display: flex;
+    }
+
+input, select {
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #f9fafb;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+    input:focus, select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    input::placeholder, select {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+select {
+    appearance: none;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="%236b7280" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>') no-repeat right 12px center / 12px;
+}
+
+button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+    button:hover {
+        background: #2563eb;
+        transform: translateY(-2px);
+    }
+
+    button:active {
+        transform: translateY(0);
+    }
+
+.switch-form {
+    margin-top: 20px;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+    .switch-form button {
+        background: none;
+        border: none;
+        color: #3b82f6;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: color 0.3s ease, text-decoration 0.3s ease;
+    }
+
+        .switch-form button:hover {
+            color: #1e40af;
+            text-decoration: underline;
+        }
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.container {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+    .container {
+        padding: 24px;
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    input, select, button {
+        font-size: 0.875rem;
+    }
+
+    .container.minimized {
+        min-height: 280px;
+    }
+
+    .container.expanded {
+        min-height: 360px;
+    }
+}
+
+

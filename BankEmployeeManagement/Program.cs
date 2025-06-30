@@ -29,8 +29,10 @@ builder.Services.AddCors(options =>
 
 // Добавление сервисов для контроллеров и авторизации
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
+//builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 
 // Настройка JWT
 var jwtSettings = configuration.GetSection("Jwt");

@@ -1,0 +1,196 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: #f4f6f8;
+    color: #1f2a44;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    padding: 32px;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2a44;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2a44;
+    margin: 32px 0 16px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+    button:hover {
+        background: #2563eb;
+        transform: translateY(-2px);
+    }
+
+    button:active {
+        transform: translateY(0);
+    }
+
+.report-section {
+    padding: 24px;
+    background: #f9fafb;
+    border-radius: 12px;
+    margin-bottom: 32px;
+    margin-top: 17px;
+    border: 1px solid #e5e7eb;
+}
+
+    .report-section form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+    }
+
+label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin: 8px 0 4px;
+}
+
+select {
+    width: 100%;
+    max-width: 470px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #fff;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    appearance: none;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="%236b7280" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>') no-repeat right 12px center / 12px;
+}
+
+    select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+
+    select::placeholder {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+table {
+    width: 100%;
+    border-collapse: collapse; /* Упрощаем структуру таблицы */
+    margin-top: 16px; /* Уменьшаем отступ сверху */
+    background: #fff;
+    border-radius: 8px; /* Меньший радиус для минимализма */
+    overflow: hidden;
+}
+
+th, td {
+    padding: 10px; /* Уменьшенные отступы для компактности */
+    text-align: center; /* Центрирование текста */
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.875rem; /* Меньший шрифт для минимализма */
+}
+
+th {
+    background: #3b82f6;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.75rem; /* Еще меньший шрифт для заголовков */
+    text-transform: uppercase;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover {
+    background: #f9fafb; /* Легкий фон при наведении */
+}
+
+.salary-report {
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h2 {
+        font-size: 1.25rem;
+    }
+
+    .report-section {
+        padding: 16px;
+    }
+
+        .report-section form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+    select {
+        max-width: 100%;
+    }
+
+    table {
+        font-size: 0.75rem; /* Еще меньший шрифт для мобильных */
+    }
+
+    th, td {
+        padding: 8px; /* Уменьшенные отступы для мобильных */
+    }
+
+    .nav-buttons {
+        flex-direction: column;
+    }
+}

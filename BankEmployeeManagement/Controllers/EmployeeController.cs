@@ -8,6 +8,7 @@ using System.Text.Json;
 using CsvHelper.Configuration;
 using CsvHelper;
 using System.Globalization;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BankEmployeeManagement.Controllers
 {
@@ -17,10 +18,13 @@ namespace BankEmployeeManagement.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private const string EmployeesListCacheKey = "EmployeesList";
 
-        public EmployeeController(AppDbContext context)
+        public EmployeeController(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         // POST: /api/Employee
@@ -63,7 +67,13 @@ namespace BankEmployeeManagement.Controllers
         [HttpGet("IndexEmployee")]
         public async Task<ActionResult<IEnumerable<EmployeeDTO>>> IndexEmployee()
         {
-            return await _context.Employees
+            // Проверяем кэш
+            if (_cache.TryGetValue(EmployeesListCacheKey, out List<EmployeeDTO> cachedEmployees))
+            {
+                return Ok(cachedEmployees);
+            }
+
+            var employees = await _context.Employees
                 .Select(e => new EmployeeDTO
                 {
                     EmployeeId = e.EmployeeId,
@@ -75,6 +85,18 @@ namespace BankEmployeeManagement.Controllers
                     Salary = e.Salary
                 })
                 .ToListAsync();
+
+            // Настраиваем параметры кэша
+            var cacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(20), 
+                SlidingExpiration = TimeSpan.FromMinutes(10) 
+            };
+
+            
+            _cache.Set(EmployeesListCacheKey, employees, cacheEntryOptions);
+
+            return Ok(employees);
         }
 
         // GET: /api/Employee/{id}
